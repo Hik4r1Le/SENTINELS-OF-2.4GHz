@@ -1,2 +1,4 @@
-# SENTINELS-OF-2.4GHz
-A Distributed IoT Anomaly Detection System for 2.4GHz Spectrum using Isolation Forest and Random Forest, which serves as the submission for NT114 - Specialized Project. The project aims to create a distributed IoT system with multiple ESP32s to extract radio frequency's features of the 2.4GHz spectrum in the surroundings. Detection of multiple types attack on 2.4 GHz WiFi is expected with the help of machine learning models: Isolation Forest and Random Forest.
+# SENTINELS OF 2.4GHz
+
+A Distributed IoT Anomaly Detection System for 2.4GHz Spectrum using Isolation Forest and Random Forest, which serves as a submission for NT114 - Specialized Project. The project aims to create a distributed IoT system with multiple ESP32s to extract radio frequency's features of the 2.4GHz spectrum in the surroundings. Detection of multiple types attack on 2.4 GHz WiFi is expected with the help of machine learning models: Isolation Forest and Random Forest.
+
