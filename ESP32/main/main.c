@@ -7,9 +7,21 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 
+#define MAX_MACS 50
+#define MAX_SSIDS 20
+#define MAX_BSSIDS 20
+#define SSID_MAX_LEN 32
+
 int channelList[3] = {1, 6, 11};
+
 static sniffer_data_t stats = {0};
 static int rssi_sum = 0;
+static uint8_t mac_list [MAX_MACS][6];
+static uint8_t bssid_list [MAX_BSSIDS][6];
+static uint8_t ssid_list [MAX_SSIDS][SSID_MAX_LEN];
+static int mac_count = 0;
+static int bssid_count = 0;
+static int ssid_count = 0;
 
 static const char *snifferTAG = "sniffer";
 
@@ -34,7 +46,43 @@ typedef struct {
 
     uint32_t timestamp_ms;
     uint8_t node_id;
+
+    uint16_t unique_macs;
+    uint16_t unique_bssids;
+    uint16_t unique_ssids;
 } sniffer_data_t;
+
+bool mac_exists(uint8_t * mac, uint8_t list [][6], int count) {
+    for (int i = 0; i < count; i++) {
+        if (memcmp(list[i], mac, 6) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool bssid_exists(uint8_t * bssid, uint8_t list [][6], int count) {
+    for (int i = 0; i < count; i++) {
+        if (memcmp(list[i], bssid, 6) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void add_mac (uint8_t * mac) {
+    if (!mac_exists(mac, mac_list, mac_count) && mac_count < MAX_MACS) {
+        memcpy(mac_list[mac_count], mac, 6);
+        mac_count++;
+    }
+}
+
+void add_bssid (uint8_t * bssid) {
+    if (!bssid_exists(bssid, bssid_list, bssid_count) && bssid_count < MAX_BSSIDS) {
+        memcpy(bssid_list[bssid_count], bssid, 6);
+        bssid_count++;
+    }
+}
 
 void sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
@@ -56,6 +104,11 @@ void sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     port_EXIT_CRITICAL(&sniffer_mux);
     //uint8_t subtype = (ctrl->sig_mode == 0) ? ((pkt->payload[0] & 0xF0) >> 4) : 0; // For non-HT packets, the subtype is in the first byte of the payload
     uint8_t control_frame = pkt->payload[0];
+    
+    uint8_t *addr2 = pkt->payload + 10; //mac addr
+    uint8_t *addr3 = pkt->payload + 16; //bssid
+    add_mac(addr2);
+    add_bssid(addr3);
     uint8_t subtype = (control_frame & 0xF0) >> 4;
     if (type == WIFI_PKT_MGMT) {
         switch(subtype) {
@@ -157,7 +210,7 @@ void app_main(void) {
 /* note: follow this packet
 {
   "node_id": "sensor_01",
-  "timestamp": 1710000000,
+  "timestamp": 1710000000,//may be not
   "channel": 1,
 
   "frames": {
