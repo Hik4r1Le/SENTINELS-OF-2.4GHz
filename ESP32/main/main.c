@@ -7,7 +7,7 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include "sniffer.h"
-
+#include "esp-now.h"
 
 void app_main(void) {
     //Init NVS
@@ -24,16 +24,25 @@ void app_main(void) {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    esp_now_peer_info_t peer = {0};
+    memcpy(peer.peer_addr, GATEWAY_MAC, 6);
+    peer.channel = GATEWAY_CHANNEL;
+    peer.ifidx = WIFI_IF_STA;
+    peer.encrypt = false;
+
+    esp_now_add_peer(&peer); //should be ESP_ERROR_CHECK
+
     //Set mode for WiFi
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     //Activate sniffer
     sniffer_init();
     
     xTaskCreate(channel_hopping_task, "channel_hopping_task", 2048, NULL, 5, NULL);
-    xTaskCreate(log_sniffer_data_task, "log_sniffer_data_task", 4096, NULL, 4, NULL);
+    xTaskCreate(log_sniffer_data_task, "log_sniffer_data_task", 4096, NULL, 6, NULL);
+    xTaskCreate(sending_data_task, "sending_data_task", 4096, NULL, 7, NULL);
 }
 
 
@@ -41,7 +50,7 @@ void app_main(void) {
 {
   "node_id": "sensor_01",
   "timestamp": 1710000000,//may be not
-  "channel": 1,
+  "channel": 1,//remove
 
   "frames": {
     "total": 250,

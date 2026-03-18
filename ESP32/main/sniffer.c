@@ -22,7 +22,7 @@ static int ssid_count = 0;
 static const char *snifferTAG = "sniffer";
 
 static portMUX_TYPE sniffer_mux = portMUX_INITIALIZER_UNLOCKED;
-
+static volatile bool espnow_active = false;
 
 QueueHandle_t sniffer_queue; 
 
@@ -121,7 +121,7 @@ void sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type){
     bool is_probe_req = (is_mgmt && subtype == 4);
     bool is_deauth = (is_mgmt && subtype == 12);
 
-    bool has_mac_header = (sig_len >= 24);
+    bool has_mac_header = (sig_len >= 24) ;
     bool need_ssid_parse = (is_beacon || is_probe_resp);
 
     uint8_t *addr2 = NULL;
@@ -134,15 +134,14 @@ void sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type){
 
     portENTER_CRITICAL(&sniffer_mux);
 
-    stats.channel = ctrl->channel;
-    stats.total++;
-
     if(ctrl->rx_state != 0){
         stats.crc_err++;
         portEXIT_CRITICAL(&sniffer_mux);
         return;
     }
 
+    //stats.channel = ctrl->channel;
+    stats.total++;
     int rssi = ctrl->rssi;
     if(rssi > stats.rssi_max) stats.rssi_max = rssi;
     if(rssi < stats.rssi_min) stats.rssi_min = rssi;
@@ -200,10 +199,13 @@ void channel_hopping_task(void *pvParameter) {
         vTaskDelay(pdMS_TO_TICKS(300));
 
         portENTER_CRITICAL(&sniffer_mux);
-        sniffer_data_t snapshot = stats; 
-        if (stats.total >0) {
-            snapshot.rssi_avg = rssi_sum / stats.total;
+        sniffer_data_t snapshot = stats;
+        if (stats.total > 0) {
+            snapshot.rssi_avg = rssi_sum / (int)stats.total;
+        } else {
+            snapshot.rssi_avg = 0;
         }
+        snapshot.channel = channel;
         snapshot.unique_macs = mac_count;
         snapshot.unique_bssids = bssid_count;
         snapshot.unique_ssids = ssid_count;
@@ -230,4 +232,16 @@ void log_sniffer_data_task(void *pvParameter) {
                     data.rssi_avg, data.rssi_max, data.rssi_min, data.unique_macs, data.unique_bssids, data.unique_ssids);
         }
     }
+}
+
+void sniffer_pause(void)
+{
+    espnow_active = false;
+    esp_wifi_set_promiscuous(false);
+}
+
+void sniffer_resume(void)
+{
+    esp_wifi_set_promiscuous(true);
+    espnow_active = true;
 }
