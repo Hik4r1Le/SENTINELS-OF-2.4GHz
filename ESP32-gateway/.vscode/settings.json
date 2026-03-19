@@ -1,9 +1,9 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
   "idf.openOcdConfigs": [
-    "interface/ftdi/esp_ftdi.cfg",
-    "target/esp32.cfg"
+    "board/esp32-bridge.cfg"
   ],
+  "idf.portWin": "COM9",
   "idf.currentSetup": "C:\\esp\\v5.5.3\\esp-idf",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32"
@@ -12,8 +12,7 @@
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=d:\\University_Stuff\\6._HK2_2025-2026\\NT114-Specialized_Project\\Project\\SENTINELS-OF-2.4GHz\\ESP32\\build"
+    "--compile-commands-dir=d:\\University_Stuff\\6._HK2_2025-2026\\NT114-Specialized_Project\\Project\\SENTINELS-OF-2.4GHz\\ESP32-gateway\\build"
   ],
-  "idf.portWin": "COM12",
   "idf.flashType": "UART"
 }

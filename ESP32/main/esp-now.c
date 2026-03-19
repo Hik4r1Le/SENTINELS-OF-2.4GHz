@@ -15,10 +15,9 @@ void sending_data_task(void *pvParameter) {
     while(1) {
         if (xQueueReceive(sniffer_queue, &data, portMAX_DELAY)) {
             payload.on_channel[count] = data;
-            ESP_LOGI("ESP-NOW", "Data for channel %d received", data.channel);
+            ESP_LOGI("ESP-NOW", "Data for channel %d sent", data.channel);
             count++;
             if (count == 3) {
-              //enter critical section
               sniffer_pause();
               esp_wifi_set_channel(GATEWAY_CHANNEL, WIFI_SECOND_CHAN_NONE); 
               esp_err_t result = esp_now_send(GATEWAY_MAC, (uint8_t *)&payload, sizeof(payload));
