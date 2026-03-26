@@ -1,5 +1,6 @@
 import serial
 import re
+import time
 
 PORT = 'COM9'
 # or PORT = '/dev/ttyUSB0' for Linux
@@ -19,6 +20,7 @@ def main():
     try:
         while True:
             line = ser.readline().decode(errors='ignore').strip()
+            receiving_time = time.time()
             if not line:
                 continue
             
@@ -30,6 +32,7 @@ def main():
             if match:
                 value = list(map(int, match.groups()))
                 data = {
+                    "timestamp": receiving_time,
                     "node" : current_node,
                     "channel": value[0],
                     "total": value[1],

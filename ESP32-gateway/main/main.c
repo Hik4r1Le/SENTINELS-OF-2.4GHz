@@ -1,10 +1,14 @@
 #include <stdio.h>
+#include <string.h>
+#include <time.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h" 
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
+
 #include "esp-now.h"
 #include "sniffer.h"
 
@@ -39,8 +43,8 @@ void espnow_rx_task(void *pvParameter) {
             for (int i = 0; i < 3; i++) {
                 sniffer_data_t *data = &rx_event.payload.on_channel[i];
                  ESP_LOGI("ESP-NOW", "Channel: %d, Total: %d, Beacon: %d, Deauth: %d, Probe Req: %d, Probe Resp: %d, Data: %d, Ctrl: %d, CRC Err: %d, RSSI Avg: %d, RSSI Max: %d, RSSI Min: %d, Unique MACs: %d, Unique BSSIDs: %d, Unique SSIDs: %d",
-                    data->channel, data->total, data->beacon, data->deauth, data->probe_req, data->probe_resp, data->data, data->ctrl, data->crc_err,
-                    data->rssi_avg, data->rssi_max, data->rssi_min, data->unique_macs, data->unique_bssids, data->unique_ssids);
+                    data->channel, data->total, data->beacon, data->deauth, data->probe_req, data->probe_resp, data->data, data->ctrl,
+                    data->crc_err, data->rssi_avg, data->rssi_max, data->rssi_min, data->unique_macs, data->unique_bssids, data->unique_ssids);
             }
         }
     }
