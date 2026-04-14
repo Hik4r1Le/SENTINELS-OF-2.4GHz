@@ -2,7 +2,7 @@ import serial
 import re
 import time
 
-PORT = 'COM9'
+PORT = 'COM11'
 # or PORT = '/dev/ttyUSB0' for Linux
 BAUD_RATE = 115200
 
