@@ -79,8 +79,6 @@ def _extract(rows: list[SnifferRow]) -> dict[str, float]:
     rssi_avg = np.array([r.rssi_avg     for r in rows], dtype=float)
     rssi_max = np.array([r.rssi_max     for r in rows], dtype=float)
     rssi_min = np.array([r.rssi_min     for r in rows], dtype=float)
-    if rssi_min > rssi_max:
-        rssi_min = rssi_max = rssi_avg  # sanity fallback - witnessed anomaly where min > max > avg
     macs     = np.array([r.unique_macs  for r in rows], dtype=float)
     ssids    = np.array([r.unique_ssids for r in rows], dtype=float)
 

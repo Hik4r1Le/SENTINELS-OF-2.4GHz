@@ -42,7 +42,7 @@ LABEL_MAP: dict[str, Optional[str]] = {
 BUCKET_S        = 0.9    # match ESP32 channel-hop cadence
 # Median pkts/cycle across 3 nodes, afternoon (low activity)
 # Based on: node1 median=32, node2 median=65.5, node3 simulated=49.2
-ENV_MEDIAN = 50.0
+ENV_MEDIAN = 36.0
 
 def process_folder(
     on_window:        Callable[[WindowResult], None],
