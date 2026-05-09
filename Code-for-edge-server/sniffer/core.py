@@ -31,25 +31,33 @@ from typing import Callable, Optional
 
 import numpy as np
 
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
 WINDOW_SIZE_S = 5.0
 STRIDE_S      = 1.0
 MAX_NODES     = 3
-NODE_IDS      = list(range(1, MAX_NODES + 1))  
-
+NODE_IDS      = list(range(1, MAX_NODES + 1))   # [1, 2, 3]
 
 # Contract with the model — never reorder, only append
 FEATURE_KEYS = (
-    "deauth_ratio",   # mean(deauth) / mean(total)
-    "beacon_ratio",   # mean(beacon) / mean(total)
-    "packet_rate",    # sum(total)   / WINDOW_SIZE_S
-    "rssi_range",     # mean(rssi_max) - mean(rssi_min)
-    "mac_density",    # mean(unique_macs) / mean(total)
-    "ssid_density",   # mean(unique_ssids) / mean(beacon)
-    "rssi_std",       # std(rssi_avg across rows)
+    "deauth_ratio",      # mean(deauth) / mean(total)
+    "beacon_ratio",      # mean(beacon) / mean(total)
+    "packet_rate",       # sum(total)   / WINDOW_SIZE_S
+    "rssi_range",        # mean(rssi_max) - mean(rssi_min)
+    "mac_density",       # mean(unique_macs) / mean(total)
+    "ssid_density",      # mean(unique_ssids) / mean(beacon)
+    "rssi_std",          # std(rssi_avg across rows)
 )
 
-VECTOR_SIZE = MAX_NODES * len(FEATURE_KEYS)   
-_ZEROS = tuple(0.0 for _ in FEATURE_KEYS)   # absent node placeholder
+VECTOR_SIZE = MAX_NODES * len(FEATURE_KEYS)
+
+
+# ---------------------------------------------------------------------------
+# Row
+# ---------------------------------------------------------------------------
 
 @dataclass
 class SnifferRow:
@@ -72,6 +80,11 @@ class SnifferRow:
     unique_ssids:  int
     label:         Optional[str] = None   # None during deployment
 
+
+# ---------------------------------------------------------------------------
+# Feature extraction
+# ---------------------------------------------------------------------------
+
 def _extract(rows: list[SnifferRow]) -> dict[str, float]:
     total    = np.array([r.total        for r in rows], dtype=float)
     beacon   = np.array([r.beacon       for r in rows], dtype=float)
@@ -79,11 +92,17 @@ def _extract(rows: list[SnifferRow]) -> dict[str, float]:
     rssi_avg = np.array([r.rssi_avg     for r in rows], dtype=float)
     rssi_max = np.array([r.rssi_max     for r in rows], dtype=float)
     rssi_min = np.array([r.rssi_min     for r in rows], dtype=float)
-    macs     = np.array([r.unique_macs  for r in rows], dtype=float)
-    ssids    = np.array([r.unique_ssids for r in rows], dtype=float)
+    bad_mask = (rssi_min == 127) | (rssi_min > rssi_max)
+    bad_avg = (rssi_avg == 0) | (rssi_avg == 127)
+    safe_fallback = np.where(bad_avg, -100.0, rssi_avg)
+    rssi_min = np.where(bad_mask, rssi_avg, rssi_min)
+    rssi_max = np.where(bad_mask, rssi_avg, rssi_max)
+    macs     = np.array([r.unique_macs   for r in rows], dtype=float)
+    ssids    = np.array([r.unique_ssids  for r in rows], dtype=float)
+    bssids   = np.array([r.unique_bssids for r in rows], dtype=float)
 
     mt = float(np.mean(total))  or 1.0
-    mb = float(np.mean(beacon))
+    mb = float(np.mean(beacon))          # intentionally NOT defaulting to 1
 
     return {
         "deauth_ratio": float(np.mean(deauth)) / mt,
@@ -91,9 +110,16 @@ def _extract(rows: list[SnifferRow]) -> dict[str, float]:
         "packet_rate":  float(np.sum(total))   / WINDOW_SIZE_S,
         "rssi_range":   float(np.mean(rssi_max) - np.mean(rssi_min)),
         "mac_density":  float(np.mean(macs))   / mt,
-        "ssid_density": float(np.mean(ssids))  / mb if mb > 0 else 0.0,
-        "rssi_std":     float(np.std(rssi_avg)),
+        "ssid_density":     float(np.mean(ssids))  / mb if mb > 0 else 0.0,
+        "rssi_std":         float(np.std(rssi_avg)),
     }
+
+
+# ---------------------------------------------------------------------------
+# WindowResult
+# ---------------------------------------------------------------------------
+
+_ZEROS = tuple(0.0 for _ in FEATURE_KEYS)   # absent node placeholder
 
 @dataclass
 class WindowResult:
@@ -119,8 +145,10 @@ class WindowResult:
 
     def to_averaged_vector(self) -> np.ndarray:
         """
-        Shape (N_FEATURES,) = (7,) - for IF and RF1
+        Shape (N_FEATURES,) = (7,).
         Averages features across all active nodes.
+        Used by IF and RF1 — consistent regardless of how many nodes are active.
+        AWID3 (1 node) and real-world (2-3 nodes) both produce the same shape.
         """
         feats = list(self.node_features.values())
         return np.array(
@@ -135,9 +163,11 @@ class WindowResult:
 
     @staticmethod
     def feature_names() -> list[str]:
+        """Column names — always same order as to_vector()."""
         return [f"n{n}_{k}" for n in NODE_IDS for k in FEATURE_KEYS]
 
     def to_dict(self) -> dict:
+        """Flat dict for CSV saving."""
         row = {
             "window_start": self.window_start,
             "window_end":   self.window_end,
@@ -148,12 +178,12 @@ class WindowResult:
             row["label"] = self.label
         return row
 
-class SlidingWindowEngine:
-    """
-    Fixed time grid: emits on t0+stride, t0+2*stride, ...
-    regardless of data arrival speed.
-    """
 
+# ---------------------------------------------------------------------------
+# Engine
+# ---------------------------------------------------------------------------
+
+class SlidingWindowEngine:
     def __init__(
         self,
         on_window:   Callable[[WindowResult], None],
@@ -169,7 +199,7 @@ class SlidingWindowEngine:
 
     def ingest(self, row: SnifferRow) -> None:
         if row.total == 0:
-            return
+            return   # skip empty channel readings (ESP32 sentinel: nothing heard)
         with self._lock:
             self._buffers[row.node].append(row)
             if self._next_emit is None:

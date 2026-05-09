@@ -11,7 +11,7 @@
 
 
 #define GATEWAY_CHANNEL 11
-#define NODE_ID 2 // Set your node ID here - 1: black WROOM, 2: yellow WROOM, 3: CAM
+#define NODE_ID 1 // Set your node ID here - 1: black WROOM, 2: yellow WROOM, 3: CAM
 static uint8_t GATEWAY_MAC[6] = {0xE0, 0x72, 0xA1, 0xD5, 0xD9, 0x94}; //that one ESP32S3
 
 typedef struct {

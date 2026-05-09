@@ -192,7 +192,7 @@ def main():
     # Deauth ratio threshold for normal data cleaning
     # Windows where deauth_ratio exceeds this are dropped from normal training
     # to prevent IF learning that deauth activity is "normal"
-    DEAUTH_CLEAN_THRESHOLD = 0.1   # drop if >x% of frames are deauth
+    DEAUTH_CLEAN_THRESHOLD = 0.3   # drop if >x% of frames are deauth
 
     for split, out_path in normal_files.items():
         windows = buckets.get("normal", {}).get(split, [])
