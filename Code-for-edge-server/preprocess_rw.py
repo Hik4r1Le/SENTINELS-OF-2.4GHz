@@ -1,5 +1,5 @@
 """
-preprocess_realworld.py — process collected real-world CSVs into window CSVs.
+preprocess_realworld.py - process collected real-world CSVs into window CSVs.
 
 Reads all CSVs from data/raw/, groups by label+session, runs each group
 through the sliding window engine, outputs train/val/test splits.
@@ -197,7 +197,7 @@ def main():
     for split, out_path in normal_files.items():
         windows = buckets.get("normal", {}).get(split, [])
         if not windows:
-            print(f"  WARNING: no normal/{split} windows — skipping")
+            print(f"  WARNING: no normal/{split} windows - skipping")
             continue
         writer    = AveragedWindowCSVWriter(out_path)
         dropped   = 0
@@ -213,7 +213,7 @@ def main():
         print(f"  rw_normal_{split}.csv: {writer.count} windows "
               f"(dropped {dropped} with deauth_ratio>{DEAUTH_CLEAN_THRESHOLD}  {drop_pct:.0%})")
         if drop_pct > 0.30:
-            print(f"  WARNING: >30% of normal windows dropped — "
+            print(f"  WARNING: >30% of normal windows dropped - "
                   f"check if deauth attack was running during collection")
 
     # ── Attack splits (for RF1) ───────────────────────────────────────────
@@ -230,7 +230,7 @@ def main():
             for w in windows:
                 writer(w)
         if writer.count == 0:
-            print(f"  WARNING: no attack/{split} windows — skipping")
+            print(f"  WARNING: no attack/{split} windows - skipping")
             writer.close()
             continue
         writer.close()

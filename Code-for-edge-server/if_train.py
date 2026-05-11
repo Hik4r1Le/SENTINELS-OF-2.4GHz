@@ -22,7 +22,7 @@ FEATURES = [
     "deauth_ratio", "beacon_ratio", "packet_rate", "rssi_range",
     "mac_density",  "ssid_density", "rssi_std",
 ]
-CONTAMINATION = 0.02
+CONTAMINATION = 0.04
 RANDOM_STATE  = 42
 
 plt.rcParams.update({
@@ -66,7 +66,7 @@ print(f"\nTraining IF  contamination={CONTAMINATION}  n_estimators=100")
 model = IsolationForest(n_estimators=100, contamination=CONTAMINATION,
                         random_state=RANDOM_STATE, n_jobs=-1)
 model.fit(X_train)
-threshold = float(-model.offset_)
+threshold = float(-model.offset_) * 0.97
 print(f"  Threshold: {threshold:.4f}")
 
 def score(X): return -model.score_samples(X)

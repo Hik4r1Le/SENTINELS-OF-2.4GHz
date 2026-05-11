@@ -1,26 +1,19 @@
 """
-core.py — SnifferRow, SlidingWindowEngine, WindowResult.
+core.py - SnifferRow, SlidingWindowEngine, WindowResult.
 
 The engine is source-agnostic and phase-agnostic.
 What changes between training / testing / deployment is only
 how you feed rows in and what you do with WindowResult.
 
-Usage patterns
---------------
-Training / testing (from file):
-    results = []
-    engine = SlidingWindowEngine(on_window=results.append)
-    for row in your_source:          # AWID3, CSV, etc.
-        engine.ingest(row)
-    X = np.array([r.to_vector() for r in results])
-    y = [r.label for r in results]
+Vectors
+-------
+to_averaged_vector()  → shape (7,)   - IF and RF1 (attack detection/classification)
+to_rf2_vector()       → shape (21,)  - RF2 (node proximity / localization)
 
-Deployment (from serial, live):
-    def on_window(result):
-        pred = model.predict([result.to_vector()])
-        ...
-    engine = SlidingWindowEngine(on_window=on_window)
-    # feed rows from serial in a loop
+RF2 vector composition
+----------------------
+  15 per-node features  : 5 spatially-informative features × 3 nodes
+  6  differential features : pairwise differences for packet_rate and rssi_range
 """
 
 from __future__ import annotations
@@ -31,33 +24,33 @@ from typing import Callable, Optional
 
 import numpy as np
 
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 WINDOW_SIZE_S = 5.0
 STRIDE_S      = 1.0
 MAX_NODES     = 3
-NODE_IDS      = list(range(1, MAX_NODES + 1))   # [1, 2, 3]
+NODE_IDS      = list(range(1, MAX_NODES + 1))
 
-# Contract with the model — never reorder, only append
+
+# ── IF / RF1 features (averaged across nodes)
+# Contract: never reorder, only append.
 FEATURE_KEYS = (
-    "deauth_ratio",      # mean(deauth) / mean(total)
-    "beacon_ratio",      # mean(beacon) / mean(total)
-    "packet_rate",       # sum(total)   / WINDOW_SIZE_S
-    "rssi_range",        # mean(rssi_max) - mean(rssi_min)
-    "mac_density",       # mean(unique_macs) / mean(total)
-    "ssid_density",      # mean(unique_ssids) / mean(beacon)
-    "rssi_std",          # std(rssi_avg across rows)
+    "deauth_ratio",   # mean(deauth) / mean(total)
+    "beacon_ratio",   # mean(beacon) / mean(total)
+    "packet_rate",    # sum(total)   / WINDOW_SIZE_S
+    "rssi_range",     # mean(rssi_max) - mean(rssi_min)
+    "mac_density",    # mean(unique_macs) / mean(total)
+    "ssid_density",   # mean(unique_ssids) / mean(beacon)
+    "rssi_std",       # std(rssi_avg across rows)
 )
 
-VECTOR_SIZE = MAX_NODES * len(FEATURE_KEYS)
+RF2_NODE_KEYS = (
+    "rssi_range"
+    "rssi_std",
+    "rssi_avg_mean",
+)
 
+_ZEROS_ALL = tuple(0.0 for _ in FEATURE_KEYS)
+_ZEROS_RF2 = tuple(0.0 for _ in RF2_NODE_KEYS)
 
-# ---------------------------------------------------------------------------
-# Row
-# ---------------------------------------------------------------------------
 
 @dataclass
 class SnifferRow:
@@ -81,10 +74,6 @@ class SnifferRow:
     label:         Optional[str] = None   # None during deployment
 
 
-# ---------------------------------------------------------------------------
-# Feature extraction
-# ---------------------------------------------------------------------------
-
 def _extract(rows: list[SnifferRow]) -> dict[str, float]:
     total    = np.array([r.total        for r in rows], dtype=float)
     beacon   = np.array([r.beacon       for r in rows], dtype=float)
@@ -92,34 +81,23 @@ def _extract(rows: list[SnifferRow]) -> dict[str, float]:
     rssi_avg = np.array([r.rssi_avg     for r in rows], dtype=float)
     rssi_max = np.array([r.rssi_max     for r in rows], dtype=float)
     rssi_min = np.array([r.rssi_min     for r in rows], dtype=float)
-    bad_mask = (rssi_min == 127) | (rssi_min > rssi_max)
-    bad_avg = (rssi_avg == 0) | (rssi_avg == 127)
-    safe_fallback = np.where(bad_avg, -100.0, rssi_avg)
-    rssi_min = np.where(bad_mask, rssi_avg, rssi_min)
-    rssi_max = np.where(bad_mask, rssi_avg, rssi_max)
-    macs     = np.array([r.unique_macs   for r in rows], dtype=float)
-    ssids    = np.array([r.unique_ssids  for r in rows], dtype=float)
-    bssids   = np.array([r.unique_bssids for r in rows], dtype=float)
+    macs     = np.array([r.unique_macs  for r in rows], dtype=float)
+    ssids    = np.array([r.unique_ssids for r in rows], dtype=float)
 
-    mt = float(np.mean(total))  or 1.0
-    mb = float(np.mean(beacon))          # intentionally NOT defaulting to 1
+    mt = float(np.mean(total)) or 1.0
+    mb = float(np.mean(beacon))
 
     return {
-        "deauth_ratio": float(np.mean(deauth)) / mt,
-        "beacon_ratio": float(np.mean(beacon)) / mt,
-        "packet_rate":  float(np.sum(total))   / WINDOW_SIZE_S,
-        "rssi_range":   float(np.mean(rssi_max) - np.mean(rssi_min)),
-        "mac_density":  float(np.mean(macs))   / mt,
-        "ssid_density":     float(np.mean(ssids))  / mb if mb > 0 else 0.0,
-        "rssi_std":         float(np.std(rssi_avg)),
+        "deauth_ratio":  float(np.mean(deauth)) / mt,
+        "beacon_ratio":  float(np.mean(beacon)) / mt,
+        "packet_rate":   float(np.sum(total))   / WINDOW_SIZE_S,
+        "rssi_range":    float(np.mean(rssi_max) - np.mean(rssi_min)),
+        "mac_density":   float(np.mean(macs))   / mt,
+        "ssid_density":  float(np.mean(ssids))  / mb if mb > 0 else 0.0,
+        "rssi_std":      float(np.std(rssi_avg)),
+        "rssi_avg_mean": float(np.mean(rssi_avg)),  # for RF2 only - not in FEATURE_KEYS
     }
 
-
-# ---------------------------------------------------------------------------
-# WindowResult
-# ---------------------------------------------------------------------------
-
-_ZEROS = tuple(0.0 for _ in FEATURE_KEYS)   # absent node placeholder
 
 @dataclass
 class WindowResult:
@@ -129,61 +107,97 @@ class WindowResult:
     active_nodes:  list[int]
     label:         Optional[str] = None
 
-    def to_vector(self) -> np.ndarray:
-        """
-        Shape (VECTOR_SIZE,) = (MAX_NODES * N_FEATURES,).
-        Absent nodes = zeros. Used by RF2.
-        """
-        parts: list[float] = []
-        for n in NODE_IDS:
-            feats = self.node_features.get(n)
-            if feats is not None:
-                parts.extend(feats[k] for k in FEATURE_KEYS)
-            else:
-                parts.extend(_ZEROS)
-        return np.array(parts, dtype=float)
+    # ── IF / RF1 ──────────────────────────────────────────────────────────
 
     def to_averaged_vector(self) -> np.ndarray:
-        """
-        Shape (N_FEATURES,) = (7,).
-        Averages features across all active nodes.
-        Used by IF and RF1 — consistent regardless of how many nodes are active.
-        AWID3 (1 node) and real-world (2-3 nodes) both produce the same shape.
-        """
         feats = list(self.node_features.values())
         return np.array(
             [float(np.mean([f[k] for f in feats])) for k in FEATURE_KEYS],
-            dtype=float
+            dtype=float,
         )
 
     @staticmethod
     def averaged_feature_names() -> list[str]:
-        """Column names for to_averaged_vector()."""
         return list(FEATURE_KEYS)
 
-    @staticmethod
-    def feature_names() -> list[str]:
-        """Column names — always same order as to_vector()."""
-        return [f"n{n}_{k}" for n in NODE_IDS for k in FEATURE_KEYS]
+    # ── RF2 ───────────────────────────────────────────────────────────────
 
-    def to_dict(self) -> dict:
-        """Flat dict for CSV saving."""
+    def to_rf2_vector(self) -> np.ndarray:
+        """
+        Shape (12,) - for RF2 node-proximity localization.
+
+        Layout
+        ------
+        [0:6]   Per-node features (2 × 3 nodes, absent node = zeros):
+                  n1_rssi_std, n1_rssi_avg_mean,
+                  n2_*, n3_*
+
+        [6:12]  Differential features (pairwise differences):
+                  rssi_std      : n1-n2, n1-n3, n2-n3
+                  rssi_avg_mean : n1-n2, n1-n3, n2-n3
+
+        Feature selection validated on real collected data:
+          rssi_std      - 83% closest-node accuracy (closest node sees most variation)
+          rssi_avg_mean - 68% closest-node accuracy (less negative = closer)
+          Differentials cancel environment-wide drift and encode direction.
+          rssi_range/packet_rate/beacon_ratio/mac_density dropped - hardware
+          signatures or insufficient zone separation in real data.
+        """
+        # Per-node block - collect values for differential computation too
+        per_node: list[float] = []
+        node_vals: dict[int, dict[str, float]] = {}
+        for n in NODE_IDS:
+            f = self.node_features.get(n)
+            if f is not None:
+                per_node.extend(f[k] for k in RF2_NODE_KEYS)
+                node_vals[n] = f
+            else:
+                per_node.extend(_ZEROS_RF2)
+                node_vals[n] = {k: 0.0 for k in RF2_NODE_KEYS}
+
+        # Differential block - both features have confirmed sign-flip between zones
+        rs = [node_vals[n]["rssi_std"]      for n in NODE_IDS]
+        ra = [node_vals[n]["rssi_avg_mean"] for n in NODE_IDS]
+
+        differentials = [
+            rs[0] - rs[1],   # rssi_std      n1-n2
+            rs[0] - rs[2],   # rssi_std      n1-n3
+            rs[1] - rs[2],   # rssi_std      n2-n3
+            ra[0] - ra[1],   # rssi_avg_mean n1-n2
+            ra[0] - ra[2],   # rssi_avg_mean n1-n3
+            ra[1] - ra[2],   # rssi_avg_mean n2-n3
+        ]
+
+        return np.array(per_node + differentials, dtype=float)
+
+    @staticmethod
+    def rf2_feature_names() -> list[str]:
+        per_node = [f"n{n}_{k}" for n in NODE_IDS for k in RF2_NODE_KEYS]
+        diffs    = [
+            "diff_rs_n1_n2", "diff_rs_n1_n3", "diff_rs_n2_n3",   # rssi_std
+            "diff_ra_n1_n2", "diff_ra_n1_n3", "diff_ra_n2_n3",   # rssi_avg_mean
+        ]
+        return per_node + diffs
+
+    # ── CSV export ────────────────────────────────────────────────────────
+
+    def to_rf2_dict(self) -> dict:
+        """Serialise to a flat dict for CSV writing (preprocess_rf2.py)."""
         row = {
             "window_start": self.window_start,
             "window_end":   self.window_end,
             "active_nodes": ",".join(str(n) for n in self.active_nodes),
         }
-        row.update(zip(self.feature_names(), self.to_vector()))
+        row.update(zip(self.rf2_feature_names(), self.to_rf2_vector()))
         if self.label is not None:
             row["label"] = self.label
         return row
 
 
-# ---------------------------------------------------------------------------
-# Engine
-# ---------------------------------------------------------------------------
+# ── Sliding window engine ─────────────────────────────────────────────────
 
 class SlidingWindowEngine:
+
     def __init__(
         self,
         on_window:   Callable[[WindowResult], None],
@@ -199,7 +213,7 @@ class SlidingWindowEngine:
 
     def ingest(self, row: SnifferRow) -> None:
         if row.total == 0:
-            return   # skip empty channel readings (ESP32 sentinel: nothing heard)
+            return
         with self._lock:
             self._buffers[row.node].append(row)
             if self._next_emit is None:
