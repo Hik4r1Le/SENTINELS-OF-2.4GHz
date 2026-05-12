@@ -47,7 +47,7 @@ os.makedirs(CHART_DIR, exist_ok=True)
 
 sys.path.insert(0, BASE_DIR)
 from sniffer.core import WindowResult
-FEATURES     = WindowResult.rf2_feature_names()   # 12 normalized features
+FEATURES     = WindowResult.rf2_feature_names()   # 18 normalized features
 CLASSES      = ["node1", "node2", "node3"]
 RANDOM_STATE = 42
 
@@ -154,8 +154,8 @@ imps  = model.feature_importances_
 std   = np.std([t.feature_importances_ for t in model.estimators_], axis=0)
 order = np.argsort(imps)
 
-# Per-node features = first 6 (2 features × 3 nodes), differentials = last 6
-n_per_node = 6
+# Per-node features = first 9 (3 features × 3 nodes), differentials = last 9
+n_per_node = 9
 colors_bar = [BLUE if i < n_per_node else ORANGE for i in order]
 
 fig, ax = plt.subplots(figsize=(9, 6))
@@ -304,6 +304,6 @@ print(f"\n{'='*50}")
 print(f"Train: {len(X_train)}  Val: {len(X_val)}  Test: {len(X_test)}")
 print(f"Val accuracy  : {(y_pred_val  == y_val ).mean():.3f}")
 print(f"Test accuracy : {(y_pred_test == y_test).mean():.3f}")
-print(f"CV  accuracy  : {cv.mean():.3f} ± {cv.std():.3f}")
+print(f"CV accuracy   : {cv.mean():.3f} ± {cv.std():.3f}")
 print(f"Charts        : {CHART_DIR}/")
 print(f"Model         : {model_path}")

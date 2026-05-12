@@ -3,7 +3,7 @@ preprocess_rf2.py - process RF2 raw CSVs into windowed, normalized feature CSVs.
 
 Normalization
 -------------
-Each per-node feature (rssi_std, rssi_avg_mean) is baseline-subtracted using
+Each per-node feature (rssi_range, rssi_std, rssi_avg_mean) is baseline-subtracted using
 the mean computed from ALL training windows across ALL zones. This removes the
 node hardware bias caused by node 3 being physically co-located with the router,
 which otherwise makes node 3 dominate every absolute RSSI metric regardless of
@@ -180,11 +180,15 @@ def normalize_and_build_row(w: WindowResult, baselines: dict) -> dict:
             per_node.append(norm[(n, key)])
 
     # Differential block - use normalized values
-    # RF2_NODE_KEYS = ('rssi_std', 'rssi_avg_mean')
+    # RF2_NODE_KEYS = ('rssi_range', 'rssi_std', 'rssi_avg_mean')
+    rr = [norm[(n, "rssi_range")]    for n in NODE_IDS]
     rs = [norm[(n, "rssi_std")]      for n in NODE_IDS]
     ra = [norm[(n, "rssi_avg_mean")] for n in NODE_IDS]
 
     differentials = [
+        rr[0] - rr[1],   # rssi_range    n1-n2
+        rr[0] - rr[2],   # rssi_range    n1-n3
+        rr[1] - rr[2],   # rssi_range    n2-n3
         rs[0] - rs[1],   # rssi_std      n1-n2
         rs[0] - rs[2],   # rssi_std      n1-n3
         rs[1] - rs[2],   # rssi_std      n2-n3

@@ -43,7 +43,7 @@ FEATURE_KEYS = (
 )
 
 RF2_NODE_KEYS = (
-    "rssi_range"
+    "rssi_range",
     "rssi_std",
     "rssi_avg_mean",
 )
