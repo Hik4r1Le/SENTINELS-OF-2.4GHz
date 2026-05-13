@@ -39,6 +39,7 @@ TRAIN_CSV      = os.path.join(BASE_DIR, "preprocessed", "rf2_train.csv")
 VAL_CSV        = os.path.join(BASE_DIR, "preprocessed", "rf2_val.csv")
 TEST_CSV       = os.path.join(BASE_DIR, "preprocessed", "rf2_test.csv")
 ZONE4_CSV      = os.path.join(BASE_DIR, "preprocessed", "rf2_zone4_test.csv")
+ZONE5_CSV      = os.path.join(BASE_DIR, "preprocessed", "rf2_zone5_test.csv")
 BASELINES_JSON = os.path.join(BASE_DIR, "preprocessed", "rf2_baselines.json")
 MODEL_DIR      = os.path.join(BASE_DIR, "models")
 CHART_DIR      = os.path.join(BASE_DIR, "charts")
@@ -95,7 +96,6 @@ print("\nLoading data...")
 X_train, y_train = load(TRAIN_CSV)
 X_val,   y_val   = load(VAL_CSV)
 X_test,  y_test  = load(TEST_CSV)
-
 for name, y in [("train", y_train), ("val", y_val), ("test", y_test)]:
     counts = {c: int((y == c).sum()) for c in CLASSES}
     print(f"  {name:6s}: {len(y)} windows  {counts}")
@@ -259,6 +259,31 @@ if X_zone4 is not None:
     print(f"\nZone 4 confidence stream saved ({len(X_zone4)} windows)")
 else:
     print("\nNo zone4 test data found - skipping confidence stream chart.")
+
+# ── Chart extra: zone5 confidence stream ─────────────────────────────────────
+
+X_zone5, _ = load(ZONE5_CSV, required=False)
+if X_zone5 is not None:
+    z5_prob = model.predict_proba(X_zone5)
+    t_axis  = np.arange(len(z5_prob))
+
+    fig, ax = plt.subplots(figsize=(14, 5))
+    for i, (cls, color) in enumerate(zip(CLASSES, COLORS)):
+        ax.plot(t_axis, z5_prob[:, i], color=color, linewidth=1.2,
+                alpha=0.85, label=cls)
+    ax.axhline(0.33, color="gray", linestyle="--", linewidth=1,
+               label="Equal probability (0.33)")
+    ax.set_xlabel("Window index (time-ordered)")
+    ax.set_ylabel("Predicted probability")
+    ax.set_title("RF2 - Confidence stream in Zone 5 (overlap region)\n"
+                 "Attacker position interpreted from relative node confidences")
+    ax.legend(fontsize=9); plt.tight_layout()
+    plt.savefig(os.path.join(CHART_DIR, "rf2_zone5_confidence_stream.png"),
+                dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"\nZone 5 confidence stream saved ({len(X_zone5)} windows)")
+else:
+    print("\nNo zone5 test data found - skipping confidence stream chart.")
 
 
 # ── Chart 7: n_estimators tuning ──────────────────────────────────────────

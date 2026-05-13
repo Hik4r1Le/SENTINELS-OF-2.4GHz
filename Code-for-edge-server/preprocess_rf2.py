@@ -242,6 +242,7 @@ def main():
 
     buckets    = defaultdict(list)   # split → [WindowResult]
     zone4_test = []
+    zone5_test = []
 
     for filepath in raw_files:
         fname = os.path.basename(filepath)
@@ -268,6 +269,14 @@ def main():
                 print(f"  {fname}: {len(windows)} windows  [zone4 / test]")
             else:
                 print(f"  SKIP zone4 non-test: {fname}")
+            continue
+        
+        if zone == "zone5":
+            if session == "test":
+                zone5_test.extend(windows)
+                print(f"  {fname}: {len(windows)} windows  [zone5 / test]")
+            else:
+                print(f"  SKIP zone5 non-test: {fname}")
             continue
 
         if zone not in VALID_ZONES:
@@ -321,12 +330,20 @@ def main():
         writer.close()
         print(f"  rf2_zone4_test.csv: {writer.count} windows  [confidence stream]")
 
+    if zone5_test:
+        z5_path = os.path.join(OUT_DIR, "rf2_zone5_test.csv")
+        writer  = RF2CSVWriter(z5_path)
+        for w in zone5_test:
+            writer.write(normalize_and_build_row(w, baselines))
+        writer.close()
+        print(f"  rf2_zone5_test.csv: {writer.count} windows  [confidence stream]")
+
     # ── Summary ───────────────────────────────────────────────────────────
     print(f"\n{'='*55}")
     print("SUMMARY\n")
     try:
         import pandas as pd
-        for name in ["rf2_train.csv", "rf2_val.csv", "rf2_test.csv", "rf2_zone4_test.csv"]:
+        for name in ["rf2_train.csv", "rf2_val.csv", "rf2_test.csv", "rf2_zone4_test.csv", "rf2_zone5_test.csv"]:
             path = os.path.join(OUT_DIR, name)
             if not os.path.exists(path) or os.path.getsize(path) == 0:
                 continue
