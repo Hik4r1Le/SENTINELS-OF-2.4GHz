@@ -60,7 +60,7 @@ CHANNEL_RE = re.compile(
     r"Unique MACs: (\d+), Unique BSSIDs: (\d+), Unique SSIDs: (\d+)"
 )
 
-VALID_ZONES    = {"node1", "node2", "node3", "zone4"}
+VALID_ZONES    = {"node1", "node2", "node3", "zone4", "zone5"}   # zone4 is the overlap region; zone5 is the outdoor area
 VALID_SESSIONS = {"train", "val", "test"}
 
 # zone4 is for test only - warn if used in train/val
@@ -68,7 +68,10 @@ ZONE4_TRAIN_WARNING = (
     "WARNING: zone4 is the overlap region and should only be used for test.\n"
     "         RF2 is trained on node1/node2/node3 only."
 )
-
+ZONE5_TRAIN_WARNING = (
+    "WARNING: zone5 is the outdoor area next to node 1 and should only be used for test.\n"
+    "         RF2 is trained on node1/node2/node3 only."
+)
 
 def main():
     parser = argparse.ArgumentParser(description="Collect RF2 localization data")
@@ -84,7 +87,9 @@ def main():
     if args.zone == "zone4" and args.session in {"train", "val"}:
         print(ZONE4_TRAIN_WARNING)
         sys.exit(1)
-
+    if args.zone == "zone5" and args.session in {"train", "val"}:
+        print(ZONE5_TRAIN_WARNING)
+        sys.exit(1)
     duration_s = args.duration * 60
     date_str   = datetime.now().strftime("%Y-%m-%d")
     out_dir    = os.path.join(os.path.dirname(__file__), "data", "rf2")

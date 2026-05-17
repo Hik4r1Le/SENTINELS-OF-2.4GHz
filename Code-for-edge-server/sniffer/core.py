@@ -1,21 +1,3 @@
-"""
-core.py - SnifferRow, SlidingWindowEngine, WindowResult.
-
-The engine is source-agnostic and phase-agnostic.
-What changes between training / testing / deployment is only
-how you feed rows in and what you do with WindowResult.
-
-Vectors
--------
-to_averaged_vector()  → shape (7,)   - IF and RF1 (attack detection/classification)
-to_rf2_vector()       → shape (21,)  - RF2 (node proximity / localization)
-
-RF2 vector composition
-----------------------
-  15 per-node features  : 5 spatially-informative features × 3 nodes
-  6  differential features : pairwise differences for packet_rate and rssi_range
-"""
-
 from __future__ import annotations
 import threading
 from collections import defaultdict, deque, Counter
@@ -124,24 +106,17 @@ class WindowResult:
 
     def to_rf2_vector(self) -> np.ndarray:
         """
-        Shape (12,) - for RF2 node-proximity localization.
+        Shape (15,) - for RF2 node-proximity localization.
 
         Layout
         ------
-        [0:6]   Per-node features (2 × 3 nodes, absent node = zeros):
-                  n1_rssi_std, n1_rssi_avg_mean,
+        [0:9]   Per-node features (3 x 3 nodes, absent node = zeros):
+                  n1_rssi_std, n1_rssi_avg_mean, n1_rssi_range 
                   n2_*, n3_*
 
-        [6:12]  Differential features (pairwise differences):
-                  rssi_std      : n1-n2, n1-n3, n2-n3
-                  rssi_avg_mean : n1-n2, n1-n3, n2-n3
-
-        Feature selection validated on real collected data:
-          rssi_std      - 83% closest-node accuracy (closest node sees most variation)
-          rssi_avg_mean - 68% closest-node accuracy (less negative = closer)
-          Differentials cancel environment-wide drift and encode direction.
-          rssi_range/packet_rate/beacon_ratio/mac_density dropped - hardware
-          signatures or insufficient zone separation in real data.
+        [9:15]  Differential features (pairwise differences):
+                  rssi_range      : n1-n2, n1-n3, n2-n3
+                  rssi_std        : n1-n2, n1-n3, n2-n3
         """
         # Per-node block - collect values for differential computation too
         per_node: list[float] = []
@@ -156,16 +131,17 @@ class WindowResult:
                 node_vals[n] = {k: 0.0 for k in RF2_NODE_KEYS}
 
         # Differential block - both features have confirmed sign-flip between zones
+        rr = [node_vals[n]["rssi_range"]    for n in NODE_IDS]
         rs = [node_vals[n]["rssi_std"]      for n in NODE_IDS]
-        ra = [node_vals[n]["rssi_avg_mean"] for n in NODE_IDS]
-
+        # why not adding rssi_avg_mean differentials? it worsened the performance, tested it. 
+        # why not remove all differential features? they are the most important ones, tested it too - huge drop in performance without them
         differentials = [
+            rr[0] - rr[1],   # rssi_range    n1-n2
+            rr[0] - rr[2],   # rssi_range    n1-n3
+            rr[1] - rr[2],   # rssi_range    n2-n3
             rs[0] - rs[1],   # rssi_std      n1-n2
             rs[0] - rs[2],   # rssi_std      n1-n3
             rs[1] - rs[2],   # rssi_std      n2-n3
-            ra[0] - ra[1],   # rssi_avg_mean n1-n2
-            ra[0] - ra[2],   # rssi_avg_mean n1-n3
-            ra[1] - ra[2],   # rssi_avg_mean n2-n3
         ]
 
         return np.array(per_node + differentials, dtype=float)
@@ -174,8 +150,8 @@ class WindowResult:
     def rf2_feature_names() -> list[str]:
         per_node = [f"n{n}_{k}" for n in NODE_IDS for k in RF2_NODE_KEYS]
         diffs    = [
+            "diff_rr_n1_n2", "diff_rr_n1_n3", "diff_rr_n2_n3",   # rssi_range
             "diff_rs_n1_n2", "diff_rs_n1_n3", "diff_rs_n2_n3",   # rssi_std
-            "diff_ra_n1_n2", "diff_ra_n1_n3", "diff_ra_n2_n3",   # rssi_avg_mean
         ]
         return per_node + diffs
 

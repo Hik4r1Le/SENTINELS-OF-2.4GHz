@@ -183,7 +183,6 @@ def normalize_and_build_row(w: WindowResult, baselines: dict) -> dict:
     # RF2_NODE_KEYS = ('rssi_range', 'rssi_std', 'rssi_avg_mean')
     rr = [norm[(n, "rssi_range")]    for n in NODE_IDS]
     rs = [norm[(n, "rssi_std")]      for n in NODE_IDS]
-    ra = [norm[(n, "rssi_avg_mean")] for n in NODE_IDS]
 
     differentials = [
         rr[0] - rr[1],   # rssi_range    n1-n2
@@ -192,9 +191,6 @@ def normalize_and_build_row(w: WindowResult, baselines: dict) -> dict:
         rs[0] - rs[1],   # rssi_std      n1-n2
         rs[0] - rs[2],   # rssi_std      n1-n3
         rs[1] - rs[2],   # rssi_std      n2-n3
-        ra[0] - ra[1],   # rssi_avg_mean n1-n2
-        ra[0] - ra[2],   # rssi_avg_mean n1-n3
-        ra[1] - ra[2],   # rssi_avg_mean n2-n3
     ]
 
     values = per_node + differentials
