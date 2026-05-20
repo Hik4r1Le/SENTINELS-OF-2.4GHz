@@ -275,7 +275,7 @@ if X_zone5 is not None:
                label="Equal probability (0.33)")
     ax.set_xlabel("Window index (time-ordered)")
     ax.set_ylabel("Predicted probability")
-    ax.set_title("RF2 - Confidence stream in Zone 5 (overlap region)\n"
+    ax.set_title("RF2 - Confidence stream in Zone 5 (obstructed area)\n"
                  "Attacker position interpreted from relative node confidences")
     ax.legend(fontsize=9); plt.tight_layout()
     plt.savefig(os.path.join(CHART_DIR, "rf2_zone5_confidence_stream.png"),

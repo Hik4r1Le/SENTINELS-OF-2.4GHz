@@ -133,8 +133,9 @@ class WindowResult:
         # Differential block - both features have confirmed sign-flip between zones
         rr = [node_vals[n]["rssi_range"]    for n in NODE_IDS]
         rs = [node_vals[n]["rssi_std"]      for n in NODE_IDS]
-        # why not adding rssi_avg_mean differentials? it worsened the performance, tested it. 
-        # why not remove all differential features? they are the most important ones, tested it too - huge drop in performance without them
+        ra = [node_vals[n]["rssi_avg_mean"] for n in NODE_IDS]
+        # why not adding rssi_avg_mean differentials? for stationary attacker, it helps a bit.
+        # but in mobile attacker scenario, the sign-flip is inconsistent, and it adds noise instead of signal. so we skip it for now.
         differentials = [
             rr[0] - rr[1],   # rssi_range    n1-n2
             rr[0] - rr[2],   # rssi_range    n1-n3
