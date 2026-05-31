@@ -3,9 +3,10 @@ services:
     restart: always
     image: "postgres:16"
     ports:
-      - "5432"
+      - "5432:5432" 
     environment:
       POSTGRES_DB: thingsboard
+      POSTGRES_USER: postgres      
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -14,11 +15,11 @@ services:
     restart: always
     image: "thingsboard/tb-node:4.2.1"
     ports:
-      - "8080:8080"     # HTTP UI
-      - "7070:7070"     # Edge RPC
-      - "1883:1883"     # MQTT for ESP32s
-      - "8883:8883"     # MQTT SSL
-      - "5683-5688:5683-5688/udp"  # CoAP/LwM2M
+      - "8080:8080"
+      - "7070:7070"
+      - "1883:1883"
+      - "8883:8883"
+      - "5683-5688:5683-5688/udp"
     logging:
       driver: "json-file"
       options:
@@ -27,6 +28,9 @@ services:
     environment:
       TB_SERVICE_ID: tb-ce-node
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      TB_QUEUE_TYPE: kafka
     depends_on:
       - postgres
 

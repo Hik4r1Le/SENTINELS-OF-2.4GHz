@@ -2,3 +2,4 @@ charts/
 models/
 preprocessed/
 data/
+config.py
