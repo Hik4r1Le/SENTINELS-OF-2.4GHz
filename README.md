@@ -166,7 +166,7 @@ The edge server publishes these telemetry keys each window:
 
 ## Deployment Notes
 
-- The RF2 baseline (`rf2_baselines` inside `rf2_model.pkl`) must be recomputed if the system is redeployed in a new environment. Run a short normal-traffic calibration session and retrain RF2 — the sensor nodes and the IF/RF1 models do not need to change.
+- The RF2 baseline (`rf2_baselines` inside `rf2_model.pkl`) must be recomputed if the system is redeployed in a new environment. Run a short normal-traffic calibration session and retrain RF2 - the sensor nodes and the IF/RF1 models do not need to change.
 - Evil twin and karma attacks are harder to localize (RF2 limitation) because their near-normal frame volume provides insufficient per-node RSSI contrast. Classification via RF1 still works reliably.
 - The system is intentionally **passive** - no packets are injected, no association is made. All monitoring is done in promiscuous mode.
 
