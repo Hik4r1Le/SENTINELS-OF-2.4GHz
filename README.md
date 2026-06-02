@@ -1,7 +1,7 @@
 # SENTINELS OF 2.4 GHz
 
 > A distributed IoT system for real-time 2.4 GHz Wi-Fi attack detection and attacker localization.  
-> Submission for **NT114 - Specialized Project** and **ATC2026 Conference (not yet reviewed as of 02/06/2026)**, University of Information Technology (UIT).
+> Submission for **NT114 - Specialized Project**, University of Information Technology (UIT) and **ATC2026 Conference** (not yet reviewed as of 02/06/2026).
 
 ---
 
