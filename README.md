@@ -53,39 +53,6 @@ For RF2, the three RSSI features are extracted **per node** and combined with **
 
 ---
 
-## Repository Structure
-
-```
-SENTINELS-OF-2.4GHz/
-├── ESP32/                  # Sensor node firmware (ESP-IDF, C)
-│   ├── main.c              # app_main: WiFi init, ESP-NOW peer, task launch
-│   ├── sniffer.c/h         # Promiscuous mode callback, channel hopping task
-│   └── esp-now.c/h         # ESP-NOW send task, payload struct
-│
-├── ESP32-gateway/          # Gateway firmware (ESP-IDF, C)
-│   └── main.c              # Receives ESP-NOW payloads, prints over UART
-│
-├── AI-related/             # ML pipeline (Python)
-│   ├── core.py             # SnifferRow, SlidingWindowEngine, WindowResult
-│   ├── collect.py          # Real-world data collection via serial
-│   ├── preprocess_rw.py    # Sliding window preprocessing → train/val/test CSVs
-│   ├── if_train.py         # Isolation Forest training
-│   ├── rf1_train.py        # RF1 attack classifier training
-│   └── rf2_train.py        # RF2 node-proximity localizer training
-│
-├── edge_server/            # Raspberry Pi 5 edge server (Python)
-│   ├── edge_server.py      # Main entry point
-│   ├── config.py           # Serial port, ThingsBoard host/token
-│   ├── serial_reader.py    # UART reader thread
-│   ├── pipeline.py         # 3-stage inference pipeline
-│   ├── tb_publisher.py     # ThingsBoard MQTT publisher
-│   └── core.py             # Shared data structures (symlinked from AI-related)
-│
-└── MAC-Reader/             # Utility: MAC address OUI lookup
-```
-
----
-
 ## Hardware
 
 <img width="958" height="912" alt="floor_plan" src="https://github.com/user-attachments/assets/febba93e-07e0-4279-95f4-8392b5b3510f" />
