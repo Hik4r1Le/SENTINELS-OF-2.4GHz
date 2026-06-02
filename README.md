@@ -1,7 +1,7 @@
 # SENTINELS OF 2.4 GHz
 
 > A distributed IoT system for real-time 2.4 GHz Wi-Fi attack detection and attacker localization.  
-> Submission for **NT114 — Specialized Project**, University of Information Technology (UIT).
+> Submission for **NT114 - Specialized Project** and **ATC2026 Conference (not yet reviewed as of 02/06/2026)**, University of Information Technology (UIT).
 
 ---
 
@@ -32,7 +32,7 @@ The edge server aggregates readings into **5-second sliding windows** with a **1
 
 <img width="551" height="461" alt="Flow Diagram drawio" src="https://github.com/user-attachments/assets/fe8848a9-9767-4f73-91e4-c65b55295188" />
 
-Running Stage 1 and Stage 2 in **parallel** (flagging on either) maximises recall — a missed attack costs more than a false positive. Stage 3 runs only when needed, keeping latency low during normal traffic.
+Running Stage 1 and Stage 2 in **parallel** (flagging on either) maximises recall - a missed attack costs more than a false positive. Stage 3 runs only when needed, keeping latency low during normal traffic.
 
 ---
 
