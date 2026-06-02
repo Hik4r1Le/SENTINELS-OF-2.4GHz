@@ -2,6 +2,7 @@
 
 > A distributed IoT system for real-time 2.4 GHz Wi-Fi attack detection and attacker localization.  
 > Submission for **NT114 - Specialized Project**, University of Information Technology (UIT) and **ATC2026 Conference** (not yet reviewed as of 02/06/2026).
+> The main contribution focuses around distributed sensing and attacker localization.
 
 ---
 
@@ -133,8 +134,8 @@ The edge server publishes these telemetry keys each window:
 
 ## Deployment Notes
 
-- The RF2 baseline (`rf2_baselines` inside `rf2_model.pkl`) must be recomputed if the system is redeployed in a new environment. Run a short normal-traffic calibration session and retrain RF2 - the sensor nodes and the IF/RF1 models do not need to change.
-- Evil twin and karma attacks are harder to localize (RF2 limitation) because their near-normal frame volume provides insufficient per-node RSSI contrast. Classification via RF1 still works reliably.
+- The RF2 baseline (`rf2_baselines` inside `rf2_model.pkl`) must be recomputed if the system is redeployed in a new environment. Run a short normal-traffic calibration session and retrain RF2.
+- Evil twin and karma attacks are harder to localize (RF2 limitation) because their near-normal frame volume provides insufficient per-node RSSI contrast. Classification via RF1 sometimes confuses between normal and evil twin during live deployment. Also, IF drifts in the normal session as well. This can be the result of environmental shifts and requires further study to understand the problems and the environment.
 - The system is intentionally **passive** - no packets are injected, no association is made. All monitoring is done in promiscuous mode.
 
 ---
