@@ -4,8 +4,6 @@
 
 > Submission for NT114 - Specialized Project, University of Information Technology (UIT) and **accepted paper** at **The 2026 International Conference on Advanced Technologies for Communications (ATC'2026)**
 
-> The main contribution focuses around distributed sensing and attacker localization.
-
 ---
 
 ## Overview
@@ -136,7 +134,6 @@ The edge server publishes these telemetry keys each window:
 
 ## Deployment Notes
 
-- The RF2 baseline (`rf2_baselines` inside `rf2_model.pkl`) must be recomputed if the system is redeployed in a new environment. Run a short normal-traffic calibration session and retrain RF2.
 - Evil twin and karma attacks are harder to detect localize because their near-normal frame volume provides insufficient per-node RSSI contrast.
 - The system is intentionally **passive** - no packets are injected, no association is made. All monitoring is done in promiscuous mode.
 
